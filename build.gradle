@@ -20,24 +20,31 @@ repositories {
 }
 
 android {
+    signingConfigs {
+        config {
+            keyAlias 'roschi'
+            keyPassword 'aloiss'
+            storeFile file('/home/andi/apk_key.jks')
+            storePassword 'aloiss'
+        }
+    }
     compileSdkVersion 22
     android.buildToolsVersion "23.0.1"
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 21
+        targetSdkVersion 19
         applicationId 'com.github.pires.obd.reader'
     }
-
     lintOptions {
         abortOnError false
     }
-
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    buildToolsVersion '23.0.1'
 }
 
 dependencies {
@@ -46,4 +53,9 @@ dependencies {
     compile 'org.roboguice:roboguice:3.+'
     provided 'org.roboguice:roboblender:3.+'
     compile 'com.squareup.retrofit:retrofit:1.9.0'
+    compile 'com.amazonaws:aws-android-sdk-core:2.+'
+    compile 'com.amazonaws:aws-android-sdk-cognito:2.+'
+    compile 'com.amazonaws:aws-android-sdk-s3:2.+'
+    compile 'com.amazonaws:aws-android-sdk-ddb:2.+'
+    compile 'com.amazonaws:aws-android-sdk-kinesis:2.+'
 }

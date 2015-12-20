@@ -18,6 +18,8 @@
     <string name="menu_stop_live_data">Detener datos en vivo</string>
     <string name="title_pref_commands">Comandos OBD</string>
     <string name="title_pref_obd">Preferencias OBD</string>
+    <string name="pref_upload_ratio_title">Upload to OBD Ratio</string>
+    <string name="pref_upload_ratio_summary">0 Same rate, >0 as divider (slower upload raqte)</string>
     <string name="notification_action">Presionar para abrir OBD-Reader</string>
     <string name="service_starting">Iniciando conexión OBD...</string>
     <string name="status_bluetooth_connected">conectado</string>

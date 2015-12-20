@@ -10,7 +10,7 @@
     <string name="service_stopped">OBD connection has stopped.</string>
     <string name="notification_label">Tap to open OBD-Reader.</string>
     <string name="title_activity_trouble_codes">Trouble Codes</string>
-    <string name="pref_upload_category_title">Data Upload</string>
+    <string name="pref_upload_category_title">Back End Options</string>
     <string name="pref_upload_category" translatable="false">upload_category</string>
     <string name="title_activity_trips_list">TripsList</string>
     <string name="menu_trip_list">Trips</string>
@@ -59,9 +59,11 @@
     <string name="status_obd_data">receiving data&#8230;</string>
     <string name="status_obd_disconnected">disconnected</string>
     <string name="status_obd_no_support">NA</string>
-    <string name="pref_upload_title">Enable Data Upload</string>
-    <string name="pref_upload_summaryOff">Enable http data upload</string>
-    <string name="pref_upload_summaryOn">Disable http data upload</string>
+    <string name="pref_upload_ratio_title">Upload to OBD Ratio</string>
+    <string name="pref_upload_ratio_summary">0 Same rate, >0 as divider (slower upload raqte)</string>
+    <string name="pref_upload_title">AWS Kinesis Stream</string>
+    <string name="pref_upload_summaryOff">Enable AWS Kinesis Stream</string>
+    <string name="pref_upload_summaryOn">Disable AWS Kinesis Stream</string>
     <string name="pref_upload_url_title">Upload URL</string>
     <string name="pref_upload_url_summary">POST URL that will accept real-time data</string>
     <string name="pref_vehicle_id_title">Vehicle ID</string>

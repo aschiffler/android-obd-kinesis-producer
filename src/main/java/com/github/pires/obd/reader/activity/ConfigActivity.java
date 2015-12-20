@@ -33,7 +33,7 @@ import java.util.Set;
 public class ConfigActivity extends PreferenceActivity implements OnPreferenceChangeListener {
 
     public static final String BLUETOOTH_LIST_KEY = "bluetooth_list_preference";
-    public static final String UPLOAD_URL_KEY = "upload_url_preference";
+    public static final String UPLOAD_RATIO_KEY = "upload_ratio_preference";
     public static final String UPLOAD_DATA_KEY = "upload_data_preference";
     public static final String OBD_UPDATE_PERIOD_KEY = "obd_update_period_preference";
     public static final String VEHICLE_ID_KEY = "vehicle_id_preference";
@@ -73,33 +73,7 @@ public class ConfigActivity extends PreferenceActivity implements OnPreferenceCh
         return period;
     }
 
-    /**
-     * @param prefs
-     * @return
-     */
-    public static double getVolumetricEfficieny(SharedPreferences prefs) {
-        String veString = prefs.getString(ConfigActivity.VOLUMETRIC_EFFICIENCY_KEY, ".85");
-        double ve = 0.85;
-        try {
-            ve = Double.parseDouble(veString);
-        } catch (Exception e) {
-        }
-        return ve;
-    }
 
-    /**
-     * @param prefs
-     * @return
-     */
-    public static double getEngineDisplacement(SharedPreferences prefs) {
-        String edString = prefs.getString(ConfigActivity.ENGINE_DISPLACEMENT_KEY, "1.6");
-        double ed = 1.6;
-        try {
-            ed = Double.parseDouble(edString);
-        } catch (Exception e) {
-        }
-        return ed;
-    }
 
     /**
      * @param prefs
@@ -117,29 +91,9 @@ public class ConfigActivity extends PreferenceActivity implements OnPreferenceCh
         return ucmds;
     }
 
-    /**
-     * @param prefs
-     * @return
-     */
-    public static double getMaxFuelEconomy(SharedPreferences prefs) {
-        String maxStr = prefs.getString(ConfigActivity.MAX_FUEL_ECON_KEY, "70");
-        double max = 70;
-        try {
-            max = Double.parseDouble(maxStr);
-        } catch (Exception e) {
-        }
-        return max;
-    }
 
-    /**
-     * @param prefs
-     * @return
-     */
-    public static String[] getReaderConfigCommands(SharedPreferences prefs) {
-        String cmdsStr = prefs.getString(CONFIG_READER_KEY, "atsp0\natz");
-        String[] cmds = cmdsStr.split("\n");
-        return cmds;
-    }
+
+
 
     /**
      * Minimum time between location updates, in milliseconds
@@ -205,8 +159,7 @@ public class ConfigActivity extends PreferenceActivity implements OnPreferenceCh
         ArrayList<CharSequence> protocolStrings = new ArrayList<>();
         ListPreference listProtocols = (ListPreference) getPreferenceScreen()
                 .findPreference(PROTOCOLS_LIST_KEY);
-        String[] prefKeys = new String[]{ENGINE_DISPLACEMENT_KEY,
-                VOLUMETRIC_EFFICIENCY_KEY, OBD_UPDATE_PERIOD_KEY, MAX_FUEL_ECON_KEY};
+        String[] prefKeys = new String[]{OBD_UPDATE_PERIOD_KEY};
         for (String prefKey : prefKeys) {
             EditTextPreference txtPref = (EditTextPreference) getPreferenceScreen()
                     .findPreference(prefKey);

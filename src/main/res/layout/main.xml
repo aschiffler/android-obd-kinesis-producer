@@ -19,14 +19,6 @@
             android:text="@string/text_zero"
             android:textSize="@dimen/abc_text_size_display_3_material" />
 
-        <TextView
-            android:id="@+id/compass_text"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="end"
-            android:text="@string/text_orientation_default"
-            android:textSize="@dimen/abc_text_size_display_3_material" />
     </TableRow>
 
     <TableRow
@@ -72,7 +64,8 @@
             android:id="@+id/data_table"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:stretchColumns="*"></TableLayout>
+            android:stretchColumns="*">
+        </TableLayout>
     </ScrollView>
 
     <TableRow

@@ -34,7 +34,12 @@ import android.widget.LinearLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.amazonaws.mobileconnectors.cognito.CognitoSyncManager;
+import com.amazonaws.mobileconnectors.cognito.Dataset;
+import com.amazonaws.mobileconnectors.cognito.DefaultSyncCallback;
+import com.amazonaws.mobileconnectors.kinesis.kinesisrecorder.KinesisRecorder;
 import com.github.pires.obd.commands.ObdCommand;
 import com.github.pires.obd.commands.SpeedCommand;
 import com.github.pires.obd.commands.engine.RPMCommand;
@@ -69,6 +74,10 @@ import roboguice.activity.RoboActivity;
 import roboguice.inject.ContentView;
 import roboguice.inject.InjectView;
 
+import com.amazonaws.mobileconnectors.*;
+import com.amazonaws.auth.CognitoCachingCredentialsProvider;
+import com.amazonaws.regions.Regions;
+
 import static com.github.pires.obd.reader.activity.ConfigActivity.getGpsDistanceUpdatePeriod;
 import static com.github.pires.obd.reader.activity.ConfigActivity.getGpsUpdatePeriod;
 
@@ -97,7 +106,6 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
 
     public Map<String, String> commandResult = new HashMap<String, String>();
     boolean mGpsIsStarted = false;
-    private LocationManager mLocService;
     private LocationProvider mLocProvider;
     private LogCSVWriter myCSVWriter;
     private Location mLastLocation;
@@ -106,55 +114,24 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     private TripRecord currentTrip;
 
     private Context context;
-    @InjectView(R.id.compass_text)
-    private TextView compass;
-    private final SensorEventListener orientListener = new SensorEventListener() {
 
-        public void onSensorChanged(SensorEvent event) {
-            float x = event.values[0];
-            String dir = "";
-            if (x >= 337.5 || x < 22.5) {
-                dir = "N";
-            } else if (x >= 22.5 && x < 67.5) {
-                dir = "NE";
-            } else if (x >= 67.5 && x < 112.5) {
-                dir = "E";
-            } else if (x >= 112.5 && x < 157.5) {
-                dir = "SE";
-            } else if (x >= 157.5 && x < 202.5) {
-                dir = "S";
-            } else if (x >= 202.5 && x < 247.5) {
-                dir = "SW";
-            } else if (x >= 247.5 && x < 292.5) {
-                dir = "W";
-            } else if (x >= 292.5 && x < 337.5) {
-                dir = "NW";
-            }
-            updateTextView(compass, dir);
-        }
+    @InjectView(R.id.BT_STATUS)             private TextView btStatusTextView;
+    @InjectView(R.id.OBD_STATUS)            private TextView obdStatusTextView;
+    @InjectView(R.id.GPS_POS)               private TextView gpsStatusTextView;
+    @InjectView(R.id.vehicle_view)          private LinearLayout vv;
+    @InjectView(R.id.data_table)            private TableLayout tl;
+    @Inject                                 private PowerManager powerManager;
+    @Inject                                 private LocationManager mLocService;
+    @Inject                                 private SharedPreferences prefs;
 
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-            // do nothing
-        }
-    };
-    @InjectView(R.id.BT_STATUS)
-    private TextView btStatusTextView;
-    @InjectView(R.id.OBD_STATUS)
-    private TextView obdStatusTextView;
-    @InjectView(R.id.GPS_POS)
-    private TextView gpsStatusTextView;
-    @InjectView(R.id.vehicle_view)
-    private LinearLayout vv;
-    @InjectView(R.id.data_table)
-    private TableLayout tl;
-    @Inject
-    private SensorManager sensorManager;
-    @Inject
-    private PowerManager powerManager;
-    @Inject
-    private SharedPreferences prefs;
     private boolean isServiceBound;
     private AbstractGatewayService service;
+
+    private KinesisRecorder recorder;
+
+    private Dataset dataset;
+    private int data_acq_loop=0;
+
     private final Runnable mQueueCommands = new Runnable() {
         public void run() {
             if (service != null && service.isRunning() && service.queueEmpty()) {
@@ -181,18 +158,19 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
                 if (prefs.getBoolean(ConfigActivity.UPLOAD_DATA_KEY, false)) {
                     // Upload the current reading by http
                     final String vin = prefs.getString(ConfigActivity.VEHICLE_ID_KEY, "UNDEFINED_VIN");
+                    final int upload_ratio = Integer.parseInt(prefs.getString(ConfigActivity.UPLOAD_RATIO_KEY, "3"));
                     Map<String, String> temp = new HashMap<String, String>();
                     temp.putAll(commandResult);
                     ObdReading reading = new ObdReading(lat, lon, alt, System.currentTimeMillis(), vin, temp);
-                    new UploadAsyncTask().execute(reading);
+                    recorder.saveRecord(reading.toString().getBytes(), "obd_input_stream");
+                    if(data_acq_loop>= upload_ratio) {
+                        new UploadAsyncTask().execute(reading);
+                        data_acq_loop = 0;
+                    }else{
+                        data_acq_loop = data_acq_loop + 1;
+                    }
+                    //recorder.submitAllRecords();
 
-                } else if (prefs.getBoolean(ConfigActivity.ENABLE_FULL_LOGGING_KEY, false)) {
-                    // Write the current reading to CSV
-                    final String vin = prefs.getString(ConfigActivity.VEHICLE_ID_KEY, "UNDEFINED_VIN");
-                    Map<String, String> temp = new HashMap<String, String>();
-                    temp.putAll(commandResult);
-                    ObdReading reading = new ObdReading(lat, lon, alt, System.currentTimeMillis(), vin, temp);
-                    myCSVWriter.writeLineCSV(reading);
                 }
                 commandResult.clear();
             }
@@ -200,9 +178,9 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
             new Handler().postDelayed(mQueueCommands, ConfigActivity.getObdUpdatePeriod(prefs));
         }
     };
-    private Sensor orientSensor = null;
     private PowerManager.WakeLock wakeLock = null;
     private boolean preRequisites = true;
+
     private ServiceConnection serviceConn = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName className, IBinder binder) {
@@ -278,7 +256,6 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     }
 
     private boolean gpsInit() {
-        mLocService = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (mLocService != null) {
             mLocProvider = mLocService.getProvider(LocationManager.GPS_PROVIDER);
             if (mLocProvider != null) {
@@ -313,24 +290,33 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    public void                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         final BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
         if (btAdapter != null)
             bluetoothDefaultIsEnable = btAdapter.isEnabled();
 
-        // get Orientation sensor
-        List<Sensor> sensors = sensorManager.getSensorList(Sensor.TYPE_ORIENTATION);
-        if (sensors.size() > 0)
-            orientSensor = sensors.get(0);
-        else
-            showDialog(NO_ORIENTATION_SENSOR);
-
-
         context = this.getApplicationContext();
         // create a log instance for use by this application
         triplog = TripLog.getInstance(context);
+        CognitoCachingCredentialsProvider credentialsProvider = new CognitoCachingCredentialsProvider(
+                getApplicationContext(),
+                "us-east-1:e190ed61-406e-45ca-b733-cd44358184b7", // Identity Pool ID
+                Regions.US_EAST_1 // Region
+        );
+        recorder = new KinesisRecorder(this.getDir("OBD_Kinesis", 0),
+                Regions.US_WEST_2, credentialsProvider);
+
+        // Initialize the Cognito Sync client
+        CognitoSyncManager syncClient = new CognitoSyncManager(
+                getApplicationContext(),
+                Regions.US_EAST_1, // Region
+                credentialsProvider);
+
+        // Create a record in a dataset and synchronize with the server
+        dataset = syncClient.openOrCreateDataset("OBD_datamodel");
+
     }
 
     @Override
@@ -355,6 +341,8 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
 
         endTrip();
 
+        recorder.deleteAllRecords();
+
         final BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
         if (btAdapter != null && btAdapter.isEnabled() && !bluetoothDefaultIsEnable)
             btAdapter.disable();
@@ -378,8 +366,6 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     protected void onResume() {
         super.onResume();
         Log.d(TAG, "Resuming..");
-        sensorManager.registerListener(orientListener, orientSensor,
-                SensorManager.SENSOR_DELAY_UI);
         wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK,
                 "ObdReader");
 
@@ -451,6 +437,17 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     private void startLiveData() {
         Log.d(TAG, "Starting live data..");
 
+        dataset.put("vehicle", "BMW");
+        dataset.put("vehicle_user", "Roschi");
+        dataset.put("mobile_device", "android");
+        dataset.put("mobile_device_google_account", "ich@gmail.com");
+        dataset.synchronize(new DefaultSyncCallback() {
+            @Override
+            public void onSuccess(Dataset dataset, List newRecords) {
+                Log.d(TAG, "Sync AWS Success");
+            }
+        });
+
         tl.removeAllViews(); //start fresh
         doBindService();
 
@@ -491,26 +488,6 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         endTrip();
 
         releaseWakeLockIfHeld();
-final String devemail = prefs.getString(ConfigActivity.DEV_EMAIL_KEY,null);
-        if (devemail != null) {
-            DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    switch (which) {
-                        case DialogInterface.BUTTON_POSITIVE:
-                            ObdGatewayService.saveLogcatToFile(getApplicationContext(), devemail);
-                            break;
-
-                        case DialogInterface.BUTTON_NEGATIVE:
-                            //No button clicked
-                            break;
-                    }
-                }
-            };
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setMessage("Where there issues?\nThen please send us the logs.\nSend Logs?").setPositiveButton("Yes", dialogClickListener)
-                    .setNegativeButton("No", dialogClickListener).show();
-        }
 
         if (myCSVWriter != null) {
             myCSVWriter.closeLogCSVWriter();
@@ -685,22 +662,7 @@ final String devemail = prefs.getString(ConfigActivity.DEV_EMAIL_KEY,null);
         @Override
         protected Void doInBackground(ObdReading... readings) {
             Log.d(TAG, "Uploading " + readings.length + " readings..");
-            // instantiate reading service client
-            final String endpoint = prefs.getString(ConfigActivity.UPLOAD_URL_KEY, "");
-            RestAdapter restAdapter = new RestAdapter.Builder()
-                    .setEndpoint(endpoint)
-                    .build();
-            ObdService service = restAdapter.create(ObdService.class);
-            // upload readings
-            for (ObdReading reading : readings) {
-                try {
-                    Response response = service.uploadReading(reading);
-                    assert response.getStatus() == 200;
-                } catch (RetrofitError re) {
-                    Log.e(TAG, re.toString());
-                }
-
-            }
+            recorder.submitAllRecords();
             Log.d(TAG, "Done");
             return null;
         }
