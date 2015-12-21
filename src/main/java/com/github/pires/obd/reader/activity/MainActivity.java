@@ -5,14 +5,9 @@ import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.location.GpsStatus;
 import android.location.Location;
 import android.location.LocationListener;
@@ -34,14 +29,16 @@ import android.widget.LinearLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
-import android.widget.Toast;
+
 
 import com.amazonaws.mobileconnectors.cognito.CognitoSyncManager;
 import com.amazonaws.mobileconnectors.cognito.Dataset;
 import com.amazonaws.mobileconnectors.cognito.DefaultSyncCallback;
-import com.amazonaws.mobileconnectors.kinesis.kinesisrecorder.KinesisRecorder;
+//import com.amazonaws.mobileconnectors.kinesis.kinesisrecorder.KinesisRecorder;
+
 import com.github.pires.obd.commands.ObdCommand;
 import com.github.pires.obd.commands.SpeedCommand;
+import com.github.pires.obd.commands.control.VinCommand;
 import com.github.pires.obd.commands.engine.RPMCommand;
 import com.github.pires.obd.commands.engine.RuntimeCommand;
 import com.github.pires.obd.enums.AvailableCommandNames;
@@ -54,7 +51,7 @@ import com.github.pires.obd.reader.io.ObdCommandJob;
 import com.github.pires.obd.reader.io.ObdGatewayService;
 import com.github.pires.obd.reader.io.ObdProgressListener;
 import com.github.pires.obd.reader.net.ObdReading;
-import com.github.pires.obd.reader.net.ObdService;
+//import com.github.pires.obd.reader.net.ObdService;
 import com.github.pires.obd.reader.trips.TripLog;
 import com.github.pires.obd.reader.trips.TripRecord;
 import com.google.inject.Inject;
@@ -66,17 +63,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import retrofit.RestAdapter;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
 import roboguice.RoboGuice;
 import roboguice.activity.RoboActivity;
 import roboguice.inject.ContentView;
 import roboguice.inject.InjectView;
 
-import com.amazonaws.mobileconnectors.*;
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.regions.Regions;
+
 
 import static com.github.pires.obd.reader.activity.ConfigActivity.getGpsDistanceUpdatePeriod;
 import static com.github.pires.obd.reader.activity.ConfigActivity.getGpsUpdatePeriod;
@@ -114,6 +108,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     private TripRecord currentTrip;
 
     private Context context;
+    private String resource;
 
     @InjectView(R.id.BT_STATUS)             private TextView btStatusTextView;
     @InjectView(R.id.OBD_STATUS)            private TextView obdStatusTextView;
@@ -127,7 +122,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     private boolean isServiceBound;
     private AbstractGatewayService service;
 
-    private KinesisRecorder recorder;
+    private OBDKinesisRecorder recorder;
 
     private Dataset dataset;
     private int data_acq_loop=0;
@@ -162,7 +157,6 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
                     Map<String, String> temp = new HashMap<String, String>();
                     temp.putAll(commandResult);
                     ObdReading reading = new ObdReading(lat, lon, alt, System.currentTimeMillis(), vin, temp);
-                    recorder.saveRecord(reading.toString().getBytes(), "obd_input_stream");
                     if(data_acq_loop>= upload_ratio) {
                         new UploadAsyncTask().execute(reading);
                         data_acq_loop = 0;
@@ -253,6 +247,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         } else addTableRow(cmdID, cmdName, cmdResult);
         commandResult.put(cmdID, cmdResult);
         updateTripStatistic(job, cmdID);
+        classify_kinesis(job,cmdID);
     }
 
     private boolean gpsInit() {
@@ -289,6 +284,24 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         }
     }
 
+    private void classify_kinesis(final ObdCommandJob job, final String cmdID) {
+        if (resource != null) {
+            if (cmdID.equals(AvailableCommandNames.VIN.toString())) {
+                VinCommand command = (VinCommand) job.getCommand();
+                // Update global resource of asset (here VIN)
+                resource = command.getFormattedResult();
+            } else if (cmdID.equals(AvailableCommandNames.ENGINE_RPM.toString())) {
+                RPMCommand command = (RPMCommand) job.getCommand();
+                //Simple Classification
+                int rpmclass = (int) command.getRPM()/500;
+                net.sf.json.JSONObject OBDjson = new net.sf.json.JSONObject();
+                OBDjson.put("resource",resource);
+                OBDjson.put("referrer","RPM_"+ rpmclass);
+                recorder.saveRecord(OBDjson.toString().getBytes(),"obd_kinesis",resource);
+            }
+        }
+    }
+
     @Override
     public void                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -305,7 +318,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
                 "us-east-1:e190ed61-406e-45ca-b733-cd44358184b7", // Identity Pool ID
                 Regions.US_EAST_1 // Region
         );
-        recorder = new KinesisRecorder(this.getDir("OBD_Kinesis", 0),
+        recorder = new OBDKinesisRecorder(this.getDir("OBD_Kinesis", 0),
                 Regions.US_WEST_2, credentialsProvider);
 
         // Initialize the Cognito Sync client

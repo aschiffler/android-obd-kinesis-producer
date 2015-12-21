@@ -16,6 +16,10 @@ package com.github.pires.obd.reader.net;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.github.pires.obd.enums.AvailableCommandNames;
+
+import net.sf.json.JSONObject;
+
 /**
  * DTO for OBD readings.
  */

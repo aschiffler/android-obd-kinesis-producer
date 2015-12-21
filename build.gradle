@@ -50,4 +50,5 @@ dependencies {
     compile 'com.amazonaws:aws-android-sdk-s3:2.+'
     compile 'com.amazonaws:aws-android-sdk-ddb:2.+'
     compile 'com.amazonaws:aws-android-sdk-kinesis:2.+'
+    compile files('gen-external-apklibs/json-lib-2.4-jdk15.jar')
 }
