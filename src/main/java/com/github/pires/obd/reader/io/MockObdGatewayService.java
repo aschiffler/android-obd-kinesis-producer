@@ -50,7 +50,7 @@ public class MockObdGatewayService extends AbstractGatewayService {
         queueJob(new ObdCommandJob(new SelectProtocolCommand(ObdProtocols.AUTO)));
 
         // Job for returning dummy data
-        queueJob(new ObdCommandJob(new AmbientAirTemperatureCommand()));
+        //queueJob(new ObdCommandJob(new AmbientAirTemperatureCommand()));
 
         queueCounter = 0L;
         Log.d(TAG, "Initialization jobs queued.");
@@ -69,12 +69,12 @@ public class MockObdGatewayService extends AbstractGatewayService {
             try {
                 job = jobsQueue.take();
 
-                Log.d(TAG, "Taking job[" + job.getId() + "] from queue..");
+          //      Log.d(TAG, "Taking job[" + job.getId() + "] from queue..");
 
                 if (job.getState().equals(ObdCommandJobState.NEW)) {
-                    Log.d(TAG, "Job state is NEW. Run it..");
+                   // Log.d(TAG, "Job state is NEW. Run it..");
                     job.setState(ObdCommandJobState.RUNNING);
-                    Log.d(TAG, job.getCommand().getName());
+                   // Log.d(TAG, job.getCommand().getName());
                     job.getCommand().run(new ByteArrayInputStream("41 00 00 00>41 00 00 00>41 00 00 00>".getBytes()), new ByteArrayOutputStream());
                 } else {
                     Log.e(TAG, "Job state was not new, so it shouldn't be in queue. BUG ALERT!");
@@ -90,7 +90,7 @@ public class MockObdGatewayService extends AbstractGatewayService {
             }
 
             if (job != null) {
-                Log.d(TAG, "Job is finished.");
+//                Log.d(TAG, "Job is finished.");
                 job.setState(ObdCommandJobState.FINISHED);
                 final ObdCommandJob job2 = job;
                 ((MainActivity) ctx).runOnUiThread(new Runnable() {

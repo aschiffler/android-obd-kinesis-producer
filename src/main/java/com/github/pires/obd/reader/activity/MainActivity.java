@@ -37,10 +37,11 @@ import com.amazonaws.mobileconnectors.cognito.DefaultSyncCallback;
 //import com.amazonaws.mobileconnectors.kinesis.kinesisrecorder.KinesisRecorder;
 
 import com.github.pires.obd.commands.ObdCommand;
-import com.github.pires.obd.commands.SpeedCommand;
+//import com.github.pires.obd.commands.SpeedCommand;
 import com.github.pires.obd.commands.control.VinCommand;
+import com.github.pires.obd.commands.engine.LoadCommand;
 import com.github.pires.obd.commands.engine.RPMCommand;
-import com.github.pires.obd.commands.engine.RuntimeCommand;
+//import com.github.pires.obd.commands.engine.RuntimeCommand;
 import com.github.pires.obd.enums.AvailableCommandNames;
 import com.github.pires.obd.reader.R;
 import com.github.pires.obd.reader.config.ObdConfig;
@@ -52,8 +53,8 @@ import com.github.pires.obd.reader.io.ObdGatewayService;
 import com.github.pires.obd.reader.io.ObdProgressListener;
 import com.github.pires.obd.reader.net.ObdReading;
 //import com.github.pires.obd.reader.net.ObdService;
-import com.github.pires.obd.reader.trips.TripLog;
-import com.github.pires.obd.reader.trips.TripRecord;
+//import com.github.pires.obd.reader.trips.TripLog;
+//import com.github.pires.obd.reader.trips.TripRecord;
 import com.google.inject.Inject;
 
 import java.io.IOException;
@@ -63,7 +64,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.json.JSONArray;
+//import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -111,11 +112,11 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     private LogCSVWriter myCSVWriter;
     private Location mLastLocation;
     /// the trip log
-    private TripLog triplog;
-    private TripRecord currentTrip;
+    //private TripLog triplog;
+    //private TripRecord currentTrip;
 
     private Context context;
-    private String resource;
+    private String resource = null;
 
 
     @InjectView(R.id.BT_STATUS)             private TextView btStatusTextView;
@@ -123,6 +124,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     @InjectView(R.id.GPS_POS)               private TextView gpsStatusTextView;
     @InjectView(R.id.vehicle_view)          private LinearLayout vv;
     @InjectView(R.id.data_table)            private TableLayout tl;
+    //@Inject(R.id.
     @Inject                                 private PowerManager powerManager;
     @Inject                                 private LocationManager mLocService;
     @Inject                                 private SharedPreferences prefs;
@@ -166,6 +168,8 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
                     temp.putAll(commandResult);
                     ObdReading reading = new ObdReading(lat, lon, alt, System.currentTimeMillis(), vin, temp);
                     if(data_acq_loop>= upload_ratio) {
+                        TextView existingTV = (TextView) vv.findViewWithTag("RECORDER_BYTES");
+                        existingTV.setText(recorder.getDiskBytesUsed()+" byte");
                         new UploadAsyncTask().execute(reading);
                         data_acq_loop = 0;
                     }else{
@@ -224,13 +228,6 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         return txt;
     }
 
-    public void updateTextView(final TextView view, final String txt) {
-        new Handler().post(new Runnable() {
-            public void run() {
-                view.setText(txt);
-            }
-        });
-    }
 
     public void stateUpdate(final ObdCommandJob job) {
         final String cmdName = job.getCommand().getName();
@@ -254,7 +251,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
             existingTV.setText(cmdResult);
         } else addTableRow(cmdID, cmdName, cmdResult);
         commandResult.put(cmdID, cmdResult);
-        updateTripStatistic(job, cmdID);
+        //updateTripStatistic(job, cmdID);
         classify_kinesis(job,cmdID);
     }
 
@@ -275,7 +272,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         // todo disable gps controls into Preferences
         return false;
     }
-
+/*
     private void updateTripStatistic(final ObdCommandJob job, final String cmdID) {
 
         if (currentTrip != null) {
@@ -291,33 +288,45 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
             }
         }
     }
-
-        private void classify_kinesis(final ObdCommandJob job, final String cmdID) {
-                if (cmdID.equals(AvailableCommandNames.VIN.toString())) {
-                    VinCommand command = (VinCommand) job.getCommand();
-                    // Update global resource of asset (here VIN)
-                    resource = command.getFormattedResult();
-                    dataset.put("vehicle", resource);
-                    dataset.synchronize(new DefaultSyncCallback() {
-                        @Override
-                        public void onSuccess(Dataset dataset, List newRecords) {
-                            Log.d(TAG, "Sync AWS Success");
-                        }
-                    });
-                } else if (cmdID.equals(AvailableCommandNames.ENGINE_RPM.toString()) && resource != null) {
-                    RPMCommand command = (RPMCommand) job.getCommand();
-                    //Simple Classification
-                    int rpmclass = (int) command.getRPM()/500;
-                    JSONObject OBDjson = new JSONObject();
-                    try {
-                        OBDjson.put("resource",resource);
-                        OBDjson.put("referrer","RPM_"+ rpmclass);
-                    }catch (JSONException ex) {
+*/
+    private void classify_kinesis(final ObdCommandJob job, final String cmdID) {
+        if (cmdID.equals(AvailableCommandNames.VIN.toString())) {
+            VinCommand command = (VinCommand) job.getCommand();
+            if (resource == null) {
+                // Update global resource of asset (here VIN)
+                resource = command.getFormattedResult();
+                dataset.put("vehicle", resource);
+                dataset.synchronize(new DefaultSyncCallback() {
+                    @Override
+                    public void onSuccess(Dataset dataset, List newRecords) {
+                        Log.d(TAG, "Sync AWS Success");
                     }
-                    recorder.saveRecord(OBDjson.toString().getBytes(),"obd_kinesis",resource);
-                }
-
+                });
+            }
+        } else if (cmdID.equals(AvailableCommandNames.ENGINE_RPM.toString()) && resource != null) {
+            RPMCommand command = (RPMCommand) job.getCommand();
+            //Simple Classification
+            int rpmclass = (int) command.getRPM()/500;
+            JSONObject OBDjson = new JSONObject();
+            try {
+                OBDjson.put("resource",resource);
+                OBDjson.put("referrer","RPM_"+ rpmclass);
+            }catch (JSONException ex) {
+            }
+            recorder.saveRecord(OBDjson.toString().getBytes(),"obd_input_stream",resource);
+        } else if (cmdID.equals(AvailableCommandNames.ENGINE_LOAD.toString()) && resource != null) {
+            LoadCommand command = (LoadCommand) job.getCommand();
+            //Simple Classification
+            int loadclass = (int) command.getPercentage()/500;
+            JSONObject OBDjson = new JSONObject();
+            try {
+                OBDjson.put("resource",resource);
+                OBDjson.put("referrer","LOAD_"+ loadclass);
+            }catch (JSONException ex) {
+            }
+            recorder.saveRecord(OBDjson.toString().getBytes(),"obd_input_stream",resource);
         }
+    }
 
     @Override
     public void                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         onCreate(Bundle savedInstanceState) {
@@ -329,7 +338,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
 
         context = this.getApplicationContext();
         // create a log instance for use by this application
-        triplog = TripLog.getInstance(context);
+        //triplog = TripLog.getInstance(context);
         CognitoCachingCredentialsProvider credentialsProvider = new CognitoCachingCredentialsProvider(
                 getApplicationContext(),
                 "us-east-1:e190ed61-406e-45ca-b733-cd44358184b7", // Identity Pool ID
@@ -337,6 +346,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         );
         recorder = new OBDKinesisRecorder(this.getDir("OBD_Kinesis", 0),
                 Regions.US_WEST_2, credentialsProvider);
+        recorder.deleteAllRecords();
 
         // Initialize the Cognito Sync client
         CognitoSyncManager syncClient = new CognitoSyncManager(
@@ -369,7 +379,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
             doUnbindService();
         }
 
-        endTrip();
+        //endTrip();
 
         recorder.deleteAllRecords();
 
@@ -471,19 +481,14 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         dataset.put("vehicle_user", "Roschi");
         dataset.put("mobile_device", "android S3 mini");
         dataset.put("mobile_device_google_account", "ich@gmail.com");
-        dataset.synchronize(new DefaultSyncCallback() {
-            @Override
-            public void onSuccess(Dataset dataset, List newRecords) {
-                Log.d(TAG, "Sync AWS Success");
-            }
-        });
 
         tl.removeAllViews(); //start fresh
         doBindService();
 
-        currentTrip = triplog.startTrip();
+       /* currentTrip = triplog.startTrip();
         if (currentTrip == null)
             showDialog(SAVE_TRIP_NOT_AVAILABLE);
+        */
 
         // start command execution
         new Handler().post(mQueueCommands);
@@ -515,7 +520,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         gpsStop();
 
         doUnbindService();
-        endTrip();
+        //endTrip();
 
         releaseWakeLockIfHeld();
 
@@ -523,14 +528,14 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
             myCSVWriter.closeLogCSVWriter();
         }
     }
-
+/*
     protected void endTrip() {
         if (currentTrip != null) {
             currentTrip.setEndDate(new Date());
             triplog.updateRecord(currentTrip);
         }
     }
-
+*/
     protected Dialog onCreateDialog(int id) {
         AlertDialog.Builder build = new AlertDialog.Builder(this);
         switch (id) {
@@ -585,7 +590,11 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
 
         TextView name = new TextView(this);
         name.setGravity(Gravity.RIGHT);
-        name.setText(key + ": ");
+        if (key.length()>30){
+            name.setText(key.substring(0,30) + ": ");
+        }else{
+            name.setText(key + ": ");
+        }
         TextView value = new TextView(this);
         value.setGravity(Gravity.LEFT);
         value.setText(val);
@@ -691,9 +700,9 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
 
         @Override
         protected Void doInBackground(ObdReading... readings) {
-            Log.d(TAG, "Uploading " + readings.length + " readings..");
+            Log.d(TAG, "Upstream " + recorder.getDiskBytesUsed() + " Bytes to Kinesis" );
             recorder.submitAllRecords();
-            Log.d(TAG, "Done");
+            Log.d(TAG, "Upstream Done");
             return null;
         }
 

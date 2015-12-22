@@ -22,17 +22,37 @@ import java.util.UUID;
  */
 public class OBDKinesisRecorder extends KinesisRecorder {
 
-    /** TheRecordStore is responsible for saving requests to be sent later **/
     FileRecordStore recordStore;
-
-    /**
-     * The RecordAdapter is responsible for converting PutRecordRequests to and
-     * from JSON
-     **/
+    AmazonKinesisClient client;
+    private KinesisRecorderConfig config;
+    private File directory;
     private JSONRecordAdapter adapter;
 
     public OBDKinesisRecorder(File directory, Regions region,AWSCredentialsProvider credentialsProvider) {
-        super(directory, region, credentialsProvider, new KinesisRecorderConfig());
+        this(directory, region, credentialsProvider, new KinesisRecorderConfig());
+    }
+
+    public OBDKinesisRecorder(File directory, Regions region,
+                           AWSCredentialsProvider credentialsProvider, KinesisRecorderConfig config) {
+        super(directory,region,credentialsProvider,config);
+        if (directory == null || credentialsProvider == null || region == null || config == null) {
+            throw new IllegalArgumentException(
+                    "You must pass a non-null credentialsProvider, region, directory, and config to KinesisRecordStore");
+        }
+
+        this.directory = directory;
+        this.config = new KinesisRecorderConfig(config);
+        this.adapter = new JSONRecordAdapter();
+        this.client = new AmazonKinesisClient(credentialsProvider,
+                this.config.getClientConfiguration());
+        client.setRegion(Region.getRegion(region));
+
+        try {
+            this.recordStore = new FileRecordStore(directory, this.config);
+        } catch (IOException e) {
+            throw new AmazonClientException("Unable to initialize KinesisRecorder", e);
+        }
+
     }
 
     public void saveRecord(byte[] data, String streamName, String partitionKey) {
