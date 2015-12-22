@@ -63,13 +63,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import roboguice.RoboGuice;
 import roboguice.activity.RoboActivity;
 import roboguice.inject.ContentView;
 import roboguice.inject.InjectView;
 
+
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.regions.Regions;
+
+
 
 
 import static com.github.pires.obd.reader.activity.ConfigActivity.getGpsDistanceUpdatePeriod;
@@ -109,6 +116,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
 
     private Context context;
     private String resource;
+
 
     @InjectView(R.id.BT_STATUS)             private TextView btStatusTextView;
     @InjectView(R.id.OBD_STATUS)            private TextView obdStatusTextView;
@@ -284,23 +292,32 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         }
     }
 
-    private void classify_kinesis(final ObdCommandJob job, final String cmdID) {
-        if (resource != null) {
-            if (cmdID.equals(AvailableCommandNames.VIN.toString())) {
-                VinCommand command = (VinCommand) job.getCommand();
-                // Update global resource of asset (here VIN)
-                resource = command.getFormattedResult();
-            } else if (cmdID.equals(AvailableCommandNames.ENGINE_RPM.toString())) {
-                RPMCommand command = (RPMCommand) job.getCommand();
-                //Simple Classification
-                int rpmclass = (int) command.getRPM()/500;
-                net.sf.json.JSONObject OBDjson = new net.sf.json.JSONObject();
-                OBDjson.put("resource",resource);
-                OBDjson.put("referrer","RPM_"+ rpmclass);
-                recorder.saveRecord(OBDjson.toString().getBytes(),"obd_kinesis",resource);
-            }
+        private void classify_kinesis(final ObdCommandJob job, final String cmdID) {
+                if (cmdID.equals(AvailableCommandNames.VIN.toString())) {
+                    VinCommand command = (VinCommand) job.getCommand();
+                    // Update global resource of asset (here VIN)
+                    resource = command.getFormattedResult();
+                    dataset.put("vehicle", resource);
+                    dataset.synchronize(new DefaultSyncCallback() {
+                        @Override
+                        public void onSuccess(Dataset dataset, List newRecords) {
+                            Log.d(TAG, "Sync AWS Success");
+                        }
+                    });
+                } else if (cmdID.equals(AvailableCommandNames.ENGINE_RPM.toString()) && resource != null) {
+                    RPMCommand command = (RPMCommand) job.getCommand();
+                    //Simple Classification
+                    int rpmclass = (int) command.getRPM()/500;
+                    JSONObject OBDjson = new JSONObject();
+                    try {
+                        OBDjson.put("resource",resource);
+                        OBDjson.put("referrer","RPM_"+ rpmclass);
+                    }catch (JSONException ex) {
+                    }
+                    recorder.saveRecord(OBDjson.toString().getBytes(),"obd_kinesis",resource);
+                }
+
         }
-    }
 
     @Override
     public void                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         onCreate(Bundle savedInstanceState) {
@@ -450,9 +467,9 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     private void startLiveData() {
         Log.d(TAG, "Starting live data..");
 
-        dataset.put("vehicle", "BMW");
+        //dataset.put("vehicle", "BMW");
         dataset.put("vehicle_user", "Roschi");
-        dataset.put("mobile_device", "android");
+        dataset.put("mobile_device", "android S3 mini");
         dataset.put("mobile_device_google_account", "ich@gmail.com");
         dataset.synchronize(new DefaultSyncCallback() {
             @Override

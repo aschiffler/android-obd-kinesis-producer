@@ -18,7 +18,7 @@ import java.util.Map;
 
 import com.github.pires.obd.enums.AvailableCommandNames;
 
-import net.sf.json.JSONObject;
+
 
 /**
  * DTO for OBD readings.

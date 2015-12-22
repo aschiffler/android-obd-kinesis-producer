@@ -179,7 +179,7 @@ public class ObdGatewayService extends AbstractGatewayService {
         queueJob(new ObdCommandJob(new SelectProtocolCommand(ObdProtocols.valueOf(protocol))));
 
         // Job for returning dummy data
-        queueJob(new ObdCommandJob(new AmbientAirTemperatureCommand()));
+        //queueJob(new ObdCommandJob(new AmbientAirTemperatureCommand()));
 
         queueCounter = 0L;
         Log.d(TAG, "Initialization jobs queued.");

@@ -3,13 +3,17 @@ package com.github.pires.obd.reader.activity;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.mobileconnectors.kinesis.kinesisrecorder.KinesisRecorder;
+import com.amazonaws.mobileconnectors.kinesis.kinesisrecorder.KinesisRecorderConfig;
 import com.amazonaws.mobileconnectors.kinesis.kinesisrecorder.internal.FileRecordStore;
 import com.amazonaws.mobileconnectors.kinesis.kinesisrecorder.internal.JSONRecordAdapter;
+import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.model.PutRecordRequest;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.annotation.Inherited;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
@@ -18,16 +22,18 @@ import java.util.UUID;
  */
 public class OBDKinesisRecorder extends KinesisRecorder {
 
-    public OBDKinesisRecorder(File directory, Regions region,AWSCredentialsProvider credentialsProvider) {
-        super(directory, region, credentialsProvider);
-    }
     /** TheRecordStore is responsible for saving requests to be sent later **/
     FileRecordStore recordStore;
+
     /**
      * The RecordAdapter is responsible for converting PutRecordRequests to and
      * from JSON
      **/
     private JSONRecordAdapter adapter;
+
+    public OBDKinesisRecorder(File directory, Regions region,AWSCredentialsProvider credentialsProvider) {
+        super(directory, region, credentialsProvider, new KinesisRecorderConfig());
+    }
 
     public void saveRecord(byte[] data, String streamName, String partitionKey) {
         if (streamName == null || streamName.isEmpty() || data == null || data.length < 1) {

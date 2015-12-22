@@ -18,7 +18,6 @@
             android:tag="SPEED"
             android:text="@string/text_zero"
             android:textSize="@dimen/abc_text_size_display_3_material" />
-
     </TableRow>
 
     <TableRow
