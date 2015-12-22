@@ -37,13 +37,17 @@ import java.util.ArrayList;
  */
 public final class ObdConfig {
 
-    public static ArrayList<ObdCommand> getCommands() {
+
+
+    public static ArrayList<ObdCommand> getCommands(boolean init) {
         ArrayList<ObdCommand> cmds = new ArrayList<>();
 
         //cmds.add(new ModuleVoltageCommand());
         //cmds.add(new EquivalentRatioCommand());
         //cmds.add(new TimingAdvanceCommand());
-        cmds.add(new VinCommand());
+        if (init){
+            cmds.add(new VinCommand());
+        }
         cmds.add(new LoadCommand());
         cmds.add(new RPMCommand());
         cmds.add(new RuntimeCommand());

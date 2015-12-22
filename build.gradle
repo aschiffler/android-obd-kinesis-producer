@@ -20,6 +20,14 @@ repositories {
 }
 
 android {
+    signingConfigs {
+        config {
+            keyAlias 'roschi'
+            keyPassword 'aloiss'
+            storeFile file('/home/andi/apk_key.jks')
+            storePassword 'aloiss'
+        }
+    }
     compileSdkVersion 22
     android.buildToolsVersion "23.0.1"
     defaultConfig {

@@ -80,7 +80,7 @@ public class ConfigActivity extends PreferenceActivity implements OnPreferenceCh
      * @return
      */
     public static ArrayList<ObdCommand> getObdCommands(SharedPreferences prefs) {
-        ArrayList<ObdCommand> cmds = ObdConfig.getCommands();
+        ArrayList<ObdCommand> cmds = ObdConfig.getCommands(false);
         ArrayList<ObdCommand> ucmds = new ArrayList<>();
         for (int i = 0; i < cmds.size(); i++) {
             ObdCommand cmd = cmds.get(i);
@@ -171,7 +171,7 @@ public class ConfigActivity extends PreferenceActivity implements OnPreferenceCh
      *
      * TODO This should be read from preferences database
      */
-        ArrayList<ObdCommand> cmds = ObdConfig.getCommands();
+        ArrayList<ObdCommand> cmds = ObdConfig.getCommands(false);
         PreferenceScreen cmdScr = (PreferenceScreen) getPreferenceScreen()
                 .findPreference(COMMANDS_SCREEN_KEY);
         for (ObdCommand cmd : cmds) {

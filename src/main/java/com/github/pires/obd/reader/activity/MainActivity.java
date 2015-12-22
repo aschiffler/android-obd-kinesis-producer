@@ -13,6 +13,8 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.location.LocationProvider;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -119,6 +121,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     private String resource = null;
 
 
+
     @InjectView(R.id.BT_STATUS)             private TextView btStatusTextView;
     @InjectView(R.id.OBD_STATUS)            private TextView obdStatusTextView;
     @InjectView(R.id.GPS_POS)               private TextView gpsStatusTextView;
@@ -139,6 +142,8 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
 
     private final Runnable mQueueCommands = new Runnable() {
         public void run() {
+
+
             if (service != null && service.isRunning() && service.queueEmpty()) {
                 queueCommands();
 
@@ -295,6 +300,9 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
             if (resource == null) {
                 // Update global resource of asset (here VIN)
                 resource = command.getFormattedResult();
+                if (resource == ""){ // Vehicle ID contains no data eg. from simulator etc.
+                    resource = "undefined";
+                }
                 dataset.put("vehicle", resource);
                 dataset.synchronize(new DefaultSyncCallback() {
                     @Override
@@ -303,7 +311,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
                     }
                 });
             }
-        } else if (cmdID.equals(AvailableCommandNames.ENGINE_RPM.toString()) && resource != null) {
+        } else if (cmdID.equals(AvailableCommandNames.ENGINE_RPM.toString()) && resource != "") {
             RPMCommand command = (RPMCommand) job.getCommand();
             //Simple Classification
             int rpmclass = (int) command.getRPM()/500;
@@ -314,10 +322,10 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
             }catch (JSONException ex) {
             }
             recorder.saveRecord(OBDjson.toString().getBytes(),"obd_input_stream",resource);
-        } else if (cmdID.equals(AvailableCommandNames.ENGINE_LOAD.toString()) && resource != null) {
+        } else if (cmdID.equals(AvailableCommandNames.ENGINE_LOAD.toString()) && resource != "") {
             LoadCommand command = (LoadCommand) job.getCommand();
             //Simple Classification
-            int loadclass = (int) command.getPercentage()/500;
+            int loadclass = (int) command.getPercentage()/10;
             JSONObject OBDjson = new JSONObject();
             try {
                 OBDjson.put("resource",resource);
@@ -609,7 +617,8 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
      */
     private void queueCommands() {
         if (isServiceBound) {
-            for (ObdCommand Command : ObdConfig.getCommands()) {
+            // If resource == null then INIT Case and add VIN Command
+            for (ObdCommand Command : ObdConfig.getCommands(resource==null)) {
                 if (prefs.getBoolean(Command.getName(), true))
                     service.queueJob(new ObdCommandJob(Command));
             }
