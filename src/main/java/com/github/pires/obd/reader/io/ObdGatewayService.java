@@ -15,6 +15,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.github.pires.obd.commands.ObdCommand;
+import com.github.pires.obd.commands.control.VinCommand;
 import com.github.pires.obd.commands.protocol.EchoOffCommand;
 import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
 import com.github.pires.obd.commands.protocol.ObdResetCommand;
@@ -178,8 +179,9 @@ public class ObdGatewayService extends AbstractGatewayService {
         final String protocol = prefs.getString(ConfigActivity.PROTOCOLS_LIST_KEY, "AUTO");
         queueJob(new ObdCommandJob(new SelectProtocolCommand(ObdProtocols.valueOf(protocol))));
 
-        // Job for returning dummy data
-        //queueJob(new ObdCommandJob(new AmbientAirTemperatureCommand()));
+        // Job for returning VIN data
+        queueJob(new ObdCommandJob(new VinCommand()));
+        queueJob(new ObdCommandJob(new VinCommand()));
 
         queueCounter = 0L;
         Log.d(TAG, "Initialization jobs queued.");

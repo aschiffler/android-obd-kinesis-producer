@@ -53,13 +53,14 @@ import com.github.pires.obd.reader.io.MockObdGatewayService;
 import com.github.pires.obd.reader.io.ObdCommandJob;
 import com.github.pires.obd.reader.io.ObdGatewayService;
 import com.github.pires.obd.reader.io.ObdProgressListener;
-import com.github.pires.obd.reader.net.ObdReading;
+//import com.github.pires.obd.reader.net.ObdReading;
 //import com.github.pires.obd.reader.net.ObdService;
 //import com.github.pires.obd.reader.trips.TripLog;
 //import com.github.pires.obd.reader.trips.TripRecord;
 import com.google.inject.Inject;
 
 import java.io.IOException;
+//import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -167,15 +168,14 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
                 }
                 if (prefs.getBoolean(ConfigActivity.UPLOAD_DATA_KEY, false)) {
                     // Upload the current reading by http
-                    final String vin = prefs.getString(ConfigActivity.VEHICLE_ID_KEY, "UNDEFINED_VIN");
                     final int upload_ratio = Integer.parseInt(prefs.getString(ConfigActivity.UPLOAD_RATIO_KEY, "3"));
-                    Map<String, String> temp = new HashMap<String, String>();
-                    temp.putAll(commandResult);
-                    ObdReading reading = new ObdReading(lat, lon, alt, System.currentTimeMillis(), vin, temp);
+                    //Map<String, String> temp = new HashMap<String, String>();
+                    //temp.putAll(commandResult);
+                    //ObdReading reading = new ObdReading(lat, lon, alt, System.currentTimeMillis(), vin, temp);
+                    TextView existingTV = (TextView) vv.findViewWithTag("RECORDER_BYTES");
+                    existingTV.setText(recorder.getDiskBytesUsed()+" byte");
                     if(data_acq_loop>= upload_ratio) {
-                        TextView existingTV = (TextView) vv.findViewWithTag("RECORDER_BYTES");
-                        existingTV.setText(recorder.getDiskBytesUsed()+" byte");
-                        new UploadAsyncTask().execute(reading);
+                        new UploadAsyncTask().execute();
                         data_acq_loop = 0;
                     }else{
                         data_acq_loop = data_acq_loop + 1;
@@ -315,10 +315,20 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
             RPMCommand command = (RPMCommand) job.getCommand();
             //Simple Classification
             int rpmclass = (int) command.getRPM()/500;
+            if (rpmclass>99){
+                rpmclass=99;
+            }
+            if (rpmclass<0){
+                rpmclass=0;
+            }
             JSONObject OBDjson = new JSONObject();
             try {
                 OBDjson.put("resource",resource);
-                OBDjson.put("referrer","RPM_"+ rpmclass);
+                if (rpmclass<10) {
+                    OBDjson.put("referrer", "0" + rpmclass + "_RPM");
+                }else{
+                    OBDjson.put("referrer", rpmclass + "_RPM");
+                }
             }catch (JSONException ex) {
             }
             recorder.saveRecord(OBDjson.toString().getBytes(),"obd_input_stream",resource);
@@ -326,10 +336,20 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
             LoadCommand command = (LoadCommand) job.getCommand();
             //Simple Classification
             int loadclass = (int) command.getPercentage()/10;
+            if (loadclass>99){
+                loadclass=99;
+            }
+            if (loadclass<0){
+                loadclass=0;
+            }
             JSONObject OBDjson = new JSONObject();
             try {
                 OBDjson.put("resource",resource);
-                OBDjson.put("referrer","LOAD_"+ loadclass);
+                if (loadclass<10) {
+                    OBDjson.put("referrer", "0" + loadclass + "_LOAD");
+                }else{
+                    OBDjson.put("referrer", loadclass + "_LOAD");
+                }
             }catch (JSONException ex) {
             }
             recorder.saveRecord(OBDjson.toString().getBytes(),"obd_input_stream",resource);
@@ -618,7 +638,10 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     private void queueCommands() {
         if (isServiceBound) {
             // If resource == null then INIT Case and add VIN Command
-            for (ObdCommand Command : ObdConfig.getCommands(resource==null)) {
+            if (resource==null){
+                service.queueJob(new ObdCommandJob(new VinCommand()));
+            }
+            for (ObdCommand Command : ObdConfig.getCommands()) {
                 if (prefs.getBoolean(Command.getName(), true))
                     service.queueJob(new ObdCommandJob(Command));
             }
@@ -705,12 +728,17 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     /**
      * Uploading asynchronous task
      */
-    private class UploadAsyncTask extends AsyncTask<ObdReading, Void, Void> {
+    private class UploadAsyncTask extends AsyncTask<Integer, Void, Void> {
 
         @Override
-        protected Void doInBackground(ObdReading... readings) {
-            Log.d(TAG, "Upstream " + recorder.getDiskBytesUsed() + " Bytes to Kinesis" );
-            recorder.submitAllRecords();
+        protected Void doInBackground(Integer ... x) {
+            Log.d(TAG, "Try to Upstream " + recorder.getDiskBytesUsed() + " Bytes to Kinesis" );
+            try {
+                recorder.submitAllRecords();
+            }catch (Exception ex){
+                Log.d(TAG, "Upstream failed");
+                return null;
+            }
             Log.d(TAG, "Upstream Done");
             return null;
         }

@@ -39,18 +39,16 @@ public final class ObdConfig {
 
 
 
-    public static ArrayList<ObdCommand> getCommands(boolean init) {
+    public static ArrayList<ObdCommand> getCommands() {
         ArrayList<ObdCommand> cmds = new ArrayList<>();
 
         //cmds.add(new ModuleVoltageCommand());
         //cmds.add(new EquivalentRatioCommand());
         //cmds.add(new TimingAdvanceCommand());
-        if (init){
-            cmds.add(new VinCommand());
-        }
+        //cmds.add(new VinCommand());
         cmds.add(new LoadCommand());
         cmds.add(new RPMCommand());
-        cmds.add(new RuntimeCommand());
+        //cmds.add(new RuntimeCommand());
         //cmds.add(new MassAirFlowCommand());
         //cmds.add(new ThrottlePositionCommand());
         //cmds.add(new OilTempCommand());
