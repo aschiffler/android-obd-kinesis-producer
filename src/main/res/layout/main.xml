@@ -16,11 +16,15 @@
             android:layout_height="wrap_content"
             android:layout_weight="2"
             android:tag="VIN_from_resource"
-            android:textSize="10pt"
-            android:textColor="#aaee33"
+            android:textSize="12pt"
+            android:textStyle="bold"
             android:text="@string/text_zero"
             />
     </TableRow>
+
+    <Space
+        android:layout_width="20dp"
+        android:layout_height="20dp" />
 
     <TableRow
         android:layout_width="fill_parent"
@@ -31,14 +35,14 @@
             android:layout_height="wrap_content"
             android:layout_weight="2"
             android:tag="ENGINE_RPM"
-            android:textSize="10pt"
+            android:textSize="12pt"
             android:text="@string/text_zero"
             />
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="2"
-            android:textSize="10pt"
+            android:textSize="12pt"
             android:tag="ENGINE_LOAD"
             android:text="@string/text_zero"
             />
@@ -47,9 +51,13 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:tag="SPEED"
-            android:textSize="10pt"
+            android:textSize="12pt"
             android:text="@string/text_zero" />
     </TableRow>
+
+    <Space
+        android:layout_width="20dp"
+        android:layout_height="20dp" />
 
     <TableRow
         android:layout_width="fill_parent"
@@ -60,34 +68,24 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:tag="RECORDER_BYTES"
+            android:textSize="12pt"
+
             android:text="@string/text_consumption_default" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:tag="ENGINE_RUNTIME"
-            android:text="@string/text_runtime_default" />
+            android:textSize="12pt"
+            android:tag="ENGINE_COOLANT_TEMP"
+            android:text="@string/text_zero" />
 
 
     </TableRow>
 
-    <ScrollView
-        android:id="@+id/data_scroll"
-        android:layout_width="fill_parent"
-        android:layout_height="0dp"
-        android:layout_gravity="top"
-        android:layout_margin="5dp"
-        android:layout_weight="1"
-        android:outlineProvider="bounds">
-
-        <TableLayout
-            android:id="@+id/data_table"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:stretchColumns="*">
-        </TableLayout>
-    </ScrollView>
+    <Space
+        android:layout_width="20dp"
+        android:layout_height="200dp" />
 
     <TableRow
         android:layout_width="fill_parent"

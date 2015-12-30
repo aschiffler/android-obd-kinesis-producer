@@ -69,6 +69,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 //import org.json.JSONArray;
 import org.json.JSONException;
@@ -130,7 +131,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     @InjectView(R.id.OBD_STATUS)            private TextView obdStatusTextView;
     @InjectView(R.id.GPS_POS)               private TextView gpsStatusTextView;
     @InjectView(R.id.vehicle_view)          private LinearLayout vv;
-    @InjectView(R.id.data_table)            private TableLayout tl;
+    //@InjectView(R.id.data_table)            private TableLayout tl;
     //@Inject(R.id.
     @Inject                                 private PowerManager powerManager;
     @Inject                                 private LocationManager mLocService;
@@ -257,7 +258,8 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         if (vv.findViewWithTag(cmdID) != null) {
             TextView existingTV = (TextView) vv.findViewWithTag(cmdID);
             existingTV.setText(cmdResult);
-        } else addTableRow(cmdID, cmdName, cmdResult);
+        }
+        //else addTableRow(cmdID, cmdName, cmdResult);
         commandResult.put(cmdID, cmdResult);
         //updateTripStatistic(job, cmdID);
         classify_kinesis(job,cmdID);
@@ -300,7 +302,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     private void classify_kinesis(final ObdCommandJob job, final String cmdID) {
         if (cmdID.equals(AvailableCommandNames.VIN.toString())) {
             VinCommand command = (VinCommand) job.getCommand();
-            if (resource == null) {
+            if (resource == null) { // initial case
                 // Update global resource of asset (here VIN)
                 resource = command.getFormattedResult();
                 if (resource == ""){ // Vehicle ID contains no data eg. from simulator etc.
@@ -313,15 +315,26 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
                         Log.d(TAG, "Sync AWS Success");
                     }
                 });
+            }else {
                 TextView existingTV = (TextView) vv.findViewWithTag("VIN_from_resource");
                 existingTV.setText(resource);
+                if (!Objects.equals(resource, command.getFormattedResult())){ // changes in resource?
+                    resource = command.getFormattedResult();
+                    dataset.put("vehicle", resource);
+                    dataset.synchronize(new DefaultSyncCallback() {
+                        @Override
+                        public void onSuccess(Dataset dataset, List newRecords) {
+                            Log.d(TAG, "Sync AWS Success");
+                        }
+                    });
+                }
             }
         } else if (cmdID.equals(AvailableCommandNames.ENGINE_RPM.toString()) && resource != "") {
             RPMCommand command = (RPMCommand) job.getCommand();
             //Simple Classification
-            int rpmclass = (int) command.getRPM()/500;
-            if (rpmclass>99){
-                rpmclass=99;
+            int rpmclass = (int) command.getRPM()/300;
+            if (rpmclass>20){//max. 6000 rpm
+                rpmclass=20;
             }
             if (rpmclass<0){
                 rpmclass=0;
@@ -340,9 +353,9 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         } else if (cmdID.equals(AvailableCommandNames.ENGINE_LOAD.toString()) && resource != "") {
             LoadCommand command = (LoadCommand) job.getCommand();
             //Simple Classification
-            int loadclass = (int) command.getPercentage()/10;
-            if (loadclass>99){
-                loadclass=99;
+            int loadclass = (int) command.getPercentage()/5;
+            if (loadclass>20){// max. LOAD is 100%
+                loadclass=20;
             }
             if (loadclass<0){
                 loadclass=0;
@@ -525,7 +538,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     private void startLiveData() {
         Log.d(TAG, "Starting live data..");
 
-        tl.removeAllViews(); //start fresh
+        //tl.removeAllViews(); //start fresh
         doBindService();
 
        /* currentTrip = triplog.startTrip();
@@ -621,7 +634,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
 
         return true;
     }
-
+/*
     private void addTableRow(String id, String key, String val) {
 
         TableRow tr = new TableRow(this);
@@ -646,7 +659,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         tr.addView(value);
         tl.addView(tr, params);
     }
-
+*/
     /**
      *
      */

@@ -45,7 +45,7 @@ public final class ObdConfig {
         //cmds.add(new ModuleVoltageCommand());
         //cmds.add(new EquivalentRatioCommand());
         //cmds.add(new TimingAdvanceCommand());
-        //cmds.add(new VinCommand());
+        cmds.add(new VinCommand());
         cmds.add(new LoadCommand());
         cmds.add(new RPMCommand());
         //cmds.add(new RuntimeCommand());
