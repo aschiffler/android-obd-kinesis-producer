@@ -25,7 +25,7 @@ android {
             keyAlias 'roschi'
             keyPassword 'aloiss'
             storeFile file('/home/andi/apk_key.jks')
-            storePassword 'aloiss'
+            storePassword '123456'
         }
     }
     compileSdkVersion 22

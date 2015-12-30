@@ -16,6 +16,7 @@ import android.location.LocationProvider;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -31,6 +32,8 @@ import android.widget.LinearLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+import android.accounts.AccountManager;
+import android.accounts.Account;
 
 
 import com.amazonaws.mobileconnectors.cognito.CognitoSyncManager;
@@ -310,6 +313,8 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
                         Log.d(TAG, "Sync AWS Success");
                     }
                 });
+                TextView existingTV = (TextView) vv.findViewWithTag("VIN_from_resource");
+                existingTV.setText(resource);
             }
         } else if (cmdID.equals(AvailableCommandNames.ENGINE_RPM.toString()) && resource != "") {
             RPMCommand command = (RPMCommand) job.getCommand();
@@ -391,6 +396,21 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     protected void onStart() {
         super.onStart();
         Log.d(TAG, "Entered onStart...");
+        AccountManager manager = (AccountManager) getSystemService(ACCOUNT_SERVICE);
+        Account[] list = manager.getAccounts();
+        String gmail = null;
+        for(Account account: list)
+        {
+            if(account.type.equalsIgnoreCase("com.google"))
+            {
+                gmail = account.name;
+                break;
+            }
+        }
+        dataset.put("APP", "obd Kinesis 1.0");
+        dataset.put("Model", Build.MODEL);
+        dataset.put("Product", Build.PRODUCT);
+        dataset.put("Google Account", gmail);
     }
 
     @Override
@@ -504,11 +524,6 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
 
     private void startLiveData() {
         Log.d(TAG, "Starting live data..");
-
-        //dataset.put("vehicle", "BMW");
-        dataset.put("vehicle_user", "Roschi");
-        dataset.put("mobile_device", "android S3 mini");
-        dataset.put("mobile_device_google_account", "ich@gmail.com");
 
         tl.removeAllViews(); //start fresh
         doBindService();

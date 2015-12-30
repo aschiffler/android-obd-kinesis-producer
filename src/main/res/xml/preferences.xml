@@ -10,13 +10,7 @@
             android:summaryOff="@string/pref_upload_summaryOff"
             android:summaryOn="@string/pref_upload_summaryOn"
             android:title="@string/pref_upload_title" />
-        <EditTextPreference
-            android:defaultValue="none"
-            android:dialogTitle="@string/pref_vehicle_id_title"
-            android:key="vehicle_id_preference"
-            android:summary="@string/pref_vehicle_id_summary"
-            android:title="@string/pref_vehicle_id_title" />
-        <EditTextPreference
+         <EditTextPreference
             android:defaultValue="3"
             android:dialogTitle="@string/pref_upload_ratio_title"
             android:key="upload_ratio_preference"
@@ -75,14 +69,10 @@
             android:summaryOn="@string/pref_imperial_units_summaryOn"
             android:title="@string/pref_imperial_units_title" />
         <EditTextPreference
-            android:defaultValue="4"
+            android:defaultValue="10"
             android:dialogTitle="@string/pref_obd_update_period_title"
             android:key="obd_update_period_preference"
             android:summary="@string/pref_obd_update_period_summary"
             android:title="@string/pref_obd_update_period_title" />
     </PreferenceCategory>
-        <PreferenceScreen
-            android:key="obd_commands_screen"
-            android:summary="@string/title_pref_commands_summary"
-            android:title="@string/title_pref_commands_title"></PreferenceScreen>
 </PreferenceScreen>
