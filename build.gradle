@@ -23,7 +23,7 @@ android {
     signingConfigs {
         config {
             keyAlias 'roschi'
-            keyPassword 'aloiss'
+            keyPassword '123456'
             storeFile file('/home/andi/apk_key.jks')
             storePassword '123456'
         }
@@ -31,7 +31,7 @@ android {
     compileSdkVersion 22
     android.buildToolsVersion "23.0.1"
     defaultConfig {
-        minSdkVersion 14
+        minSdkVersion 19
         targetSdkVersion 19
         applicationId 'com.github.pires.obd.reader'
     }

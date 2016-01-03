@@ -302,12 +302,13 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     private void classify_kinesis(final ObdCommandJob job, final String cmdID) {
         if (cmdID.equals(AvailableCommandNames.VIN.toString())) {
             VinCommand command = (VinCommand) job.getCommand();
-            if (resource == null) { // initial case
-                // Update global resource of asset (here VIN)
-                resource = command.getFormattedResult();
-                if (resource == ""){ // Vehicle ID contains no data eg. from simulator etc.
-                    resource = "undefined";
-                }
+            String vin_temp = command.getFormattedResult();
+            Log.d(TAG, "VIN: " + vin_temp);
+            if (vin_temp == ""){
+                vin_temp = "undefined";
+            }
+            if (!Objects.equals(resource, vin_temp)){ // changes in resource?
+                resource = vin_temp;
                 dataset.put("vehicle", resource);
                 dataset.synchronize(new DefaultSyncCallback() {
                     @Override
@@ -315,20 +316,9 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
                         Log.d(TAG, "Sync AWS Success");
                     }
                 });
-            }else {
-                TextView existingTV = (TextView) vv.findViewWithTag("VIN_from_resource");
-                existingTV.setText(resource);
-                if (!Objects.equals(resource, command.getFormattedResult())){ // changes in resource?
-                    resource = command.getFormattedResult();
-                    dataset.put("vehicle", resource);
-                    dataset.synchronize(new DefaultSyncCallback() {
-                        @Override
-                        public void onSuccess(Dataset dataset, List newRecords) {
-                            Log.d(TAG, "Sync AWS Success");
-                        }
-                    });
-                }
             }
+            TextView existingTV = (TextView) vv.findViewWithTag("VIN_from_resource");
+            existingTV.setText(resource);
         } else if (cmdID.equals(AvailableCommandNames.ENGINE_RPM.toString()) && resource != "") {
             RPMCommand command = (RPMCommand) job.getCommand();
             //Simple Classification
